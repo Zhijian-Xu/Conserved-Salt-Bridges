@@ -5,8 +5,6 @@ A reproducible pipeline to **split SCOP domains**, **align domains within a fami
 ---
 
 ## Pipeline overview
-
-```markdown
 ```mermaid
 flowchart LR
   A["SCOP family list (txt)"] --> B["Step01 Split domains"]
