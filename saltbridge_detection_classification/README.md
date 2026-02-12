@@ -18,13 +18,13 @@ flowchart LR
   G --> H["Step07 Finalize true conserved (recurrence >= 5)"]
 ```
 
-Key thresholds (as used in this project)
+## Key thresholds (as used in this project)
 Salt bridge detection: Asp/Glu ↔ Lys/Arg within 5.0 Å (see Step02 output)
 Spatial conservation (Step03): bridge center distance ≤ 2.0 Å
 True conservation (Step07): same-position salt bridge observed ≥ 5 times
 
 
-Repository structure (recommended)
+## Repository structure (recommended)
 scripts/
   step01_split_scop_domains.py
   step02_align_domains_detect_saltbridges.py
@@ -35,13 +35,13 @@ scripts/
   step07_finalize_true_conserved.py
 
 
-data/
+## data/
   raw_families/                 # input raw structures grouped by family
   family_lists/                 # <family_id>.txt domain lists + reference.txt
   domains/                      # Step01 output: <family_id>/*.cif
 
 
-results/
+## results/
   step02_saltbridges_raw/       # Step02 output: per-family txt
   step03_clusters/              # Step03 output (user-defined)
   step04_ca_distances/          # Step04 output
@@ -50,7 +50,7 @@ results/
   step07_true_conserved_k5/     # Step07 output: final filtered txt
 
 
-Installation
+## Installation
 This project relies on PyMOL Python API.
 Recommended (conda-forge):
 conda create -n saltbridge python=3.10 -y
@@ -58,7 +58,7 @@ conda activate saltbridge
 conda install -c conda-forge pymol-open-source numpy pandas matplotlib jupyterlab -y
 
 
-Input formats
+## Input formats
 1) Family domain list: data/family_lists/<family_id>.txt
 Each line defines a domain to extract. Supported formats:
 3 columns: PDBID CHAIN RES_RANGE
@@ -81,7 +81,7 @@ Example:
 4007548  3xyz-A10_120
 
 
-Step-by-step usage
+## Step-by-step usage
 Step01 — Split SCOP domains into domain structures
 Script: scripts/step01_split_scop_domains.py
 python scripts/step01_split_scop_domains.py \
