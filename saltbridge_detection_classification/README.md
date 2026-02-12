@@ -6,6 +6,7 @@ A reproducible pipeline to **split SCOP domains**, **align domains within a fami
 
 ## Pipeline overview
 
+```markdown
 ```mermaid
 flowchart LR
   A["SCOP family list (txt)"] --> B["Step01 Split domains"]
@@ -15,6 +16,7 @@ flowchart LR
   E --> F["Step05 Distance statistics and plots"]
   F --> G["Step06 Classical vs non-classical classification"]
   G --> H["Step07 Finalize true conserved (recurrence >= 5)"]
+```
 
 Key thresholds (as used in this project)
 Salt bridge detection: Asp/Glu ↔ Lys/Arg within 5.0 Å (see Step02 output)
