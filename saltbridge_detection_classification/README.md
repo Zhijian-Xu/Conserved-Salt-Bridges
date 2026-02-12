@@ -8,13 +8,14 @@ A reproducible pipeline to **split SCOP domains**, **align domains within a fami
 
 ```mermaid
 flowchart LR
-  A[SCOP family list (*.txt)] --> B[Step01 Split domains]
-  B --> C[Step02 Align domains & detect salt bridges]
-  C --> D[Step03 Spatial clustering: conserved vs unconserved]
-  D --> E[Step04 CA distance + geometry (cla/nocla/other)]
-  E --> F[Step05 Distance statistics & plots]
-  F --> G[Step06 Classical vs non-classical classification]
-  G --> H[Step07 Finalize true conserved: recurrence >= 5]
+  A["SCOP family list (txt)"] --> B["Step01 Split domains"]
+  B --> C["Step02 Align domains and detect salt bridges"]
+  C --> D["Step03 Spatial clustering: conserved vs unconserved"]
+  D --> E["Step04 CA distance + geometry (cla/nocla/other)"]
+  E --> F["Step05 Distance statistics and plots"]
+  F --> G["Step06 Classical vs non-classical classification"]
+  G --> H["Step07 Finalize true conserved (recurrence >= 5)"]
+
 Key thresholds (as used in this project)
 Salt bridge detection: Asp/Glu ↔ Lys/Arg within 5.0 Å (see Step02 output)
 Spatial conservation (Step03): bridge center distance ≤ 2.0 Å
