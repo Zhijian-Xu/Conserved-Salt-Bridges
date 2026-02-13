@@ -57,23 +57,16 @@ ml_prediction_pipeline/
 │   ├── step01_map_pdb_to_uniprot.py
 │   ├── step02_extract_alphamissense.py
 │   ├── step04_prepare_esm_input.py
-│   └── predict-pzy3.py                  # ESM inference (5-model ensemble)
+│   └── step05_run_esm_ensemble.py                  # ESM inference (5-model ensemble)
 │
 ├── notebooks/
 │   ├── step03_plot_alphamissense.ipynb  # AM_pic.ipynb (QC figures)
 │   └── step06_plot_esm_results.ipynb    # ESM plots + mean_score
 │
-├── data/                                 # not tracked in git
-│   ├── scop/
-│   ├── alphamissense/
-│   ├── mapping/
-│   ├── esm_input/
-│   └── uniprot/                          # optional: fasta files
-│
 └── results/
+    ├── Mapping/
     ├── alphamissense/
-    ├── esm/
-    └── figures/
+    └── esm/
 ```
 
 ---
