@@ -113,8 +113,6 @@ Some intermediate and result files (e.g., ESM prediction tables) exceed GitHubâ€
 Examples include:
 
 - ESM prediction CSV tables  
-- Extracted AlphaMissense score tables  
-- Merged datasets  
 
 All results can be fully reproduced by running the pipeline.
 
