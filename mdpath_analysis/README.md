@@ -1,41 +1,62 @@
 # MdPath Information-Flow Analysis (WT vs MUT)
 
-This submodule runs **MdPath** on WT and mutant MD trajectories, then quantifies **information-field reorganization** using:
-1) divergence-field comparison (Mut − WT)  
-2) residue-level attribution around Cα atoms  
-3) replicate summarization (mean/SD/CI across 3 runs)
-
-> Commands below are written **without hard-coded absolute paths**.  
-> Use environment variables or relative paths so the workflow is portable.
+This module performs **information-flow analysis** using MdPath on wild-type (WT) and mutant (MUT) molecular dynamics trajectories, followed by divergence-field comparison and residue-level attribution.
 
 ---
 
-## 0) Prerequisites
+# Environment Setup (MdPath)
 
-### Software
-- `mdpath` executable available in `$PATH` (or provide full path to binary)
-- Python ≥ 3.9 with:
-  - numpy, pandas
-  - scipy (recommended; required if you use smoothing in divergence-field step)
+MdPath must be installed before running this pipeline.
 
-Note: `compare_divergence_field.py` applies Gaussian smoothing via `scipy.ndimage.gaussian_filter` when `--smooth_sigma > 0` fileciteturn5file0L17-L23.  
-If you do not want scipy, set `--smooth_sigma 0`.
+Official repository:
 
-### Required MdPath outputs per run
-For each run directory (WT or MUT), the scripts assume:
-- `nmi_df.csv`
-- `output.txt`
+https://github.com/wolberlab/mdpath
 
-`compare_divergence_field.py` explicitly looks for these two files in both `--wt_dir` and `--mut_dir` fileciteturn5file0L313-L321.
+Follow the installation instructions provided in the MdPath repository to compile and configure the executable.
+
+After installation, ensure the binary is accessible:
+
+```bash
+mdpath --help
+```
+
+If not, add it to your PATH:
+
+```bash
+export PATH=/path/to/mdpath:$PATH
+```
 
 ---
 
-## 1) Recommended directory layout
+# Data Policy
 
-```text
+Due to storage constraints, **MD trajectories are NOT distributed in this repository.**
+
+Only the following are tracked:
+
+- original protein structure files (PDB)
+- analysis scripts
+- lightweight metadata
+
+Users must generate trajectories independently before running MdPath.
+
+---
+
+# Pipeline Overview
+
+1. Run MdPath on WT and mutant trajectories  
+2. Compare divergence fields (Mut − WT)  
+3. Compute residue-level information changes  
+4. Average results across replicate simulations  
+
+---
+
+# Recommended Directory Layout
+
+```
 mdpath_pipeline/
 ├── wt/
-│   ├── rep1/              # mdpath output folder (contains nmi_df.csv + output.txt)
+│   ├── rep1/
 │   ├── rep2/
 │   └── rep3/
 ├── mut/
@@ -45,188 +66,97 @@ mdpath_pipeline/
 ├── pdb/
 │   ├── wt_first_frame.pdb
 │   └── mut_first_frame.pdb
-├── traj/
-│   ├── wt_align.xtc
-│   └── mut_align.xtc
 ├── scripts/
 │   ├── compare_divergence_field.py
 │   ├── residue_level_from_fields.py
 │   └── summarize_infofield_reps.py
 └── results/
-    ├── rep1/
-    ├── rep2/
-    ├── rep3/
-    └── summary/
 ```
 
 ---
 
-## 2) Step01 — Run MdPath (mutant trajectories)
+# Step01 — Run MdPath
 
-You provided two mutant systems. Example `nohup` submission commands:
+Example submissions.
 
-### System A: 6FYV-E79A
+## System A — 6FYV-E79A
 
 ```bash
 nohup mdpath   -top 6FYV-E79A.pdb   -traj ../MD1-200ns/6FYV-E79A1_align.xtc   -cpu 20   -fardist 40   -lig 8 79 92 94 41 56 138 175   -numpath 500   -graphdist 8   -closedist 4   > mdpath.out 2>&1 &
 ```
 
-### System B: 4IAN-R79A (trajectory file name uses R80A3_align.xtc in your example)
+## System B — 4IAN-R79A
 
 ```bash
 nohup mdpath   -top 4IAN-R79A.pdb   -traj ../MD3-200ns/4IAN-R80A3_align.xtc   -cpu 20   -fardist 40   -lig 8 79 41 56 158 157 93 31 33   -numpath 500   -graphdist 8   -closedist 4   > mdpath.out 2>&1 &
 ```
 
-**Outputs (per run folder)**: `nmi_df.csv` + `output.txt` (used by downstream scripts).
+Each run produces:
+
+- `nmi_df.csv`
+- `output.txt`
+
+These files are required for downstream analysis.
 
 ---
 
-## 3) Step02 — Divergence-field comparison (Mut − WT)
-
-This step:
-1) extracts Cα coordinates from WT and MUT PDBs
-2) aligns MUT→WT by Kabsch alignment on common residues
-3) builds 3D vector fields from MdPath edges weighted by NMI
-4) computes divergence fields for WT and MUT
-5) saves Δdivergence = div(MUT) − div(WT)
-
-The script stores all arrays and a `SUMMARY.json` under the output directory fileciteturn5file0L404-L437.
-
-### Command template (portable)
-
-Set your paths as variables:
+# Step02 — Divergence Field Comparison
 
 ```bash
-WT_DIR="wt/rep1"
-MUT_DIR="mut/rep1"
-WT_PDB="pdb/wt_first_frame.pdb"
-MUT_PDB="pdb/mut_first_frame.pdb"
-OUT_DIR="results/rep1/DIVERGENCE_COMPARE"
+python3 scripts/compare_divergence_field.py   --wt_dir wt/rep1   --mut_dir mut/rep1   --wt_pdb pdb/wt_first_frame.pdb   --mut_pdb pdb/mut_first_frame.pdb   --pdb_index_mode sequential   --shift_mut 0   --grid_h 1.0   --smooth_sigma 1.0   --vector_mode unit
 ```
 
-Run:
+Output directory:
 
-```bash
-python3 scripts/compare_divergence_field.py   --wt_dir  "${WT_DIR}"   --mut_dir "${MUT_DIR}"   --wt_pdb  "${WT_PDB}"   --mut_pdb "${MUT_PDB}"   --pdb_index_mode sequential   --shift_mut 0   --grid_h 1.0   --smooth_sigma 1.0   --vector_mode unit   --out_dir "${OUT_DIR}"
+```
+DIVERGENCE_COMPARE/
 ```
 
-### Key options you used
-- `--pdb_index_mode sequential` (recommended for mdpath “Res i”) fileciteturn5file0L292-L299  
-- `--shift_mut 0` (if indices already match) fileciteturn5file0L297-L300  
-- `--grid_h 1.0` voxel size in Å fileciteturn5file0L299-L301  
-- `--smooth_sigma 1.0` smoothing sigma (set 0 to disable) fileciteturn5file0L302-L305  
-- `--vector_mode unit` uses NMI * unit(direction) fileciteturn5file0L305-L308  
+Key outputs:
 
-### Outputs (inside `${OUT_DIR}`)
-- `wt_Fx.npy, wt_Fy.npy, wt_Fz.npy`
-- `mut_Fx.npy, mut_Fy.npy, mut_Fz.npy`
-- `wt_div.npy`, `mut_div.npy`
-- `delta_div_mut_minus_wt.npy`
-- `SUMMARY.json`
-
-Saved exactly by the script fileciteturn5file0L404-L437.
+- divergence fields (WT and MUT)
+- delta divergence (Mut − WT)
+- SUMMARY.json
 
 ---
 
-## 4) Step03 — Residue-level attribution from fields
-
-This step samples (via trilinear interpolation) the divergence change and |ΔF| near each residue Cα, and reports:
-- `delta_div_at_CA`
-- `mean_abs_delta_div_R{R}`
-- `dFmag_at_CA`
-- `mean_dFmag_R{R}`
-
-It writes:
-- `residue_level_changes_R{R}.csv`
-- `top{N}_residues_by_mean_abs_delta_div_R{R}.csv` fileciteturn5file1L133-L146
-
-### Command template
+# Step03 — Residue-Level Information Change
 
 ```bash
-DIV_DIR="results/rep1/DIVERGENCE_COMPARE"
-WT_PDB="pdb/wt_first_frame.pdb"
+python3 scripts/residue_level_from_fields.py   --div_dir DIVERGENCE_COMPARE   --wt_pdb pdb/wt_first_frame.pdb   --pdb_index_mode sequential   --R 3.0   --top 50
+```
 
-python3 scripts/residue_level_from_fields.py   --div_dir "${DIV_DIR}"   --wt_pdb "${WT_PDB}"   --pdb_index_mode sequential   --R 3.0   --top 50
+Output:
+
+```
+residue_level_changes_R3.0.csv
 ```
 
 ---
 
-## 5) Step04 — Summarize 3 replicates (mean across reps)
+# Step04 — Average Across Replicates
 
-You run three independent MUT replicates (rep1/rep2/rep3). Each replicate should produce:
-
-```
-results/repX/DIVERGENCE_COMPARE/residue_level_changes_R3.0.csv
-```
-
-Then summarize them:
+Run after generating residue tables for three independent simulations.
 
 ```bash
 python3 scripts/summarize_infofield_reps.py   --csv     results/rep1/DIVERGENCE_COMPARE/residue_level_changes_R3.0.csv     results/rep2/DIVERGENCE_COMPARE/residue_level_changes_R3.0.csv     results/rep3/DIVERGENCE_COMPARE/residue_level_changes_R3.0.csv   --outprefix 6FYV   --rank_by mean_abs_delta_div_R3.0_mean,mean_dFmag_R3.0_mean   --topn 10   --motif_json motifs_6FYV.json
 ```
 
-This script outputs:
-- `<outprefix>.residue_summary.csv` (per-residue mean/sd/CI across reps) fileciteturn5file2L1-L11  
-- `<outprefix>.global_per_rep.csv` and `<outprefix>.global_summary.csv` fileciteturn5file2L1-L11  
-- optional motif summaries when `--motif_json` is provided fileciteturn5file2L1-L11  
+Outputs include:
 
-It also prints the **Top-N residues** ranked by one or more summary columns to terminal fileciteturn5file2L14-L21.
+- residue_summary.csv  
+- global_summary.csv  
 
-### Motif JSON format (example)
-
-```json
-{
-  "agg": "max",
-  "motifs": {
-    "β3–VAIK": [41],
-    "Hinge": [94, 95],
-    "DFG": [184, 185, 186]
-  }
-}
-```
-
-- `agg="max"` means take the maximum metric among residues in the motif.
-- `agg="mean"` means take the average.
-
-(See docstring in script header) fileciteturn5file2L68-L95
+These represent replicate-averaged information-field changes.
 
 ---
 
-## 6) Practical notes (to avoid common pitfalls)
+# Reproducibility
 
-### A) Avoid absolute paths
-Your original commands had absolute paths (e.g., `/home/databank/...`).  
-For portability, replace them with variables like `${WT_DIR}` and relative paths as shown above.
+All analyses can be reproduced by:
 
-### B) Index consistency matters
-If residue indices between WT and MUT are off by a constant, use `--shift_mut` to fix:
-> WT_index = MUT_index + shift_mut fileciteturn5file0L297-L300
+1. generating MD trajectories  
+2. running MdPath  
+3. executing the scripts in this directory  
 
-If indices are from PDB `resSeq`, switch:
-- `--pdb_index_mode resseq`
-Otherwise keep:
-- `--pdb_index_mode sequential` fileciteturn5file0L292-L299
-
-### C) Alignment requires enough common residues
-The script requires ≥20 common Cα residues for alignment, otherwise it errors (check shift/index mode) fileciteturn5file0L337-L343.
-
-### D) Runtime
-- `compare_divergence_field.py` cost scales with grid size (`--grid_h`, `--padding`) and number of edges deposited.
-- `residue_level_from_fields.py` cost scales with number of residues and radius `--R`.
-
----
-
-## 7) What to report in the paper
-
-Typical reporting items:
-- Δdivergence field (Mut − WT) visualization (hotspots around salt-bridge neighborhood)
-- Top residues by `mean_abs_delta_div_R3.0_mean` and `mean_dFmag_R3.0_mean`
-- Motif-level summaries (β3–VAIK / αC / HRD / DFG / hinge, etc.)
-- Replicate-averaged statistics and confidence intervals
-
----
-
-## License / data note
-
-Large MdPath outputs and MD trajectories are not committed to GitHub.  
-Only scripts and small metadata are tracked.
+Large trajectory files are intentionally excluded from version control.
