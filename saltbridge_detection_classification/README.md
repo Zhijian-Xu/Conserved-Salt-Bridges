@@ -45,18 +45,6 @@ notebooks/
   step05_distance_statistics_visualization.ipynb
   step06_classify_classical_vs_nonclassical.ipynb
 
-data/
-  raw_families/                    # input raw structures grouped by family: <family_id>/*.cif.gz
-  family_lists/                    # <family_id>.txt domain lists + reference.txt
-  domains/                         # Step01 output: <family_id>/*.cif
-
-results/
-  step02_saltbridges_raw/          # Step02 output: per-family txt
-  step03_clusters/                 # Step03 output (user-defined)
-  step04_ca_distances/             # Step04 output
-  figures/                         # Step05 output
-  final_tables/                    # Step06 output
-  step07_true_conserved_k5/        # Step07 output: final filtered txt
 ```
 
 ---
