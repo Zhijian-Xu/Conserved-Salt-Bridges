@@ -21,9 +21,12 @@ flowchart LR
 
 ## Key thresholds (as used in this project)
 
-- **Salt bridge detection:** Asp/Glu ↔ Lys/Arg within **5.0 Å**
-- **Spatial conservation:** bridge center distance ≤ **2.0 Å**
-- **True conservation:** same-position salt bridge observed **≥ 5 times**
+- **Salt bridge detection (Step02):** Asp/Glu ↔ Lys/Arg within **5.0 Å**
+- **Spatial conservation (Step03):** salt-bridge center distance ≤ **2.0 Å**
+- **True conservation (Step07):** same-position salt bridge observed **≥ 5 times**
+- **Cα-based residue proximity (classical vs non-classical):**
+  - **Classical conserved:** Cα–Cα distance ≤ **2.0 Å**
+  - **Non-classical conserved:** Cα–Cα distance ≤ **3.0 Å**
 
 ---
 
