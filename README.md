@@ -42,7 +42,7 @@ G --> H
 Location:
 
 ```
-saltbridge_pipeline/
+saltbridge_detection_classification/
 ```
 
 Core capabilities:
@@ -65,7 +65,7 @@ Produces the structural foundation for downstream analyses.
 Location:
 
 ```
-ml_prediction_pipeline/
+llm_prediction/
 ```
 
 Key analyses:
@@ -88,7 +88,7 @@ Large external datasets are required but **not distributed** in this repository.
 Location:
 
 ```
-mdpath_pipeline/
+mdpath_analysis/
 ```
 
 Workflow:
