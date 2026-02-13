@@ -1,76 +1,72 @@
 # ML Prediction Pipeline  
-## AlphaMissense + ESM-1v Analysis of Salt-Bridge Residues
+## Deep-Learning Assessment of Spatially Conserved Salt Bridges
 
-This module evaluates mutational sensitivity of spatially conserved salt-bridge residues using:
+This module evaluates the mutational sensitivity of spatially conserved salt-bridge residues using state-of-the-art protein variant predictors:
 
-- **AlphaMissense**
-- **ESM-1v ensemble**
+- **AlphaMissense** — pathogenicity prediction  
+- **ESM-1v** — zero-shot mutational effect estimation  
 
-The pipeline maps salt-bridge residues from **PDB positions → UniProt positions**, retrieves mutation scores, and validates conservation signals using deep-learning predictors.
+The pipeline maps salt-bridge residues from **PDB coordinates to UniProt positions**, retrieves mutation scores, and validates evolutionary constraints through large-scale language models.
 
 ---
 
-# Overview
+# 🔬 Scientific Rationale
+
+Spatially conserved salt bridges are hypothesized to represent structurally critical interactions under strong evolutionary constraint.
+
+To test this hypothesis, we quantify mutational tolerance at these residues using:
+
+- genome-scale pathogenicity predictions (AlphaMissense)
+- protein language model likelihood shifts (ESM-1v)
+
+Lower mutational tolerance supports functional importance.
+
+---
+
+# Pipeline Overview
 
 ```mermaid
 flowchart LR
   A["Salt bridge residues (PDB)"]
-  --> B["Step01 Map PDB → UniProt"]
-  --> C["Step02 Extract AlphaMissense ALA scores"]
-  --> D["Step03 Plot AlphaMissense results"]
-  --> E["Step04 Prepare ESM mutation input"]
+  --> B["Step01 Map PDB → UniProt (SCOP alignment)"]
+  --> C["Step02 Extract AlphaMissense scores"]
+  --> D["Step03 Visualize conservation signal"]
+  --> E["Step04 Prepare ESM mutation table"]
   --> F["Step05 Run ESM-1v ensemble"]
-  --> G["Step06 Merge & visualize results"]
+  --> G["Step06 Merge predictions"]
+  --> H["Step07 Plot mutational constraint"]
 ```
 
 ---
 
-# Installation
+# ⚡ Quick Start (Minimal Reproduction)
 
-Recommended environment:
+After downloading required datasets:
 
 ```bash
 conda create -n saltbridge-ml python=3.10 -y
 conda activate saltbridge-ml
-conda install pandas numpy matplotlib tqdm -y
-pip install torch
-pip install fair-esm
+
+pip install torch fair-esm pandas numpy matplotlib tqdm
 ```
 
-GPU strongly recommended for ESM inference.
+Run the core pipeline:
+
+```bash
+python scripts/step01_map_pdb_to_uniprot.py ...
+python scripts/step02_extract_alphamissense.py ...
+python scripts/step05_run_esm_ensemble.py ...
+```
+
+Results will reproduce the mutation constraint analyses reported in the manuscript.
 
 ---
 
-# Required external data
-
-## 1) SCOP mapping file
-
-Download:
-
-https://www.ebi.ac.uk/pdbe/scop/files/scop-cla-latest.txt
-
-Used for PDB → UniProt residue alignment.
-
----
-
-## 2) AlphaMissense dataset
-
-Download from:
-
-https://alphamissense.hegelab.org/
-
-Example file:
-
-```
-AlphaMissense_aa_substitutions.tsv
-```
-
----
-
-# Directory structure
+# Repository Structure
 
 ```text
 ml_prediction_pipeline/
+│
 ├── scripts/
 │   ├── step01_map_pdb_to_uniprot.py
 │   ├── step02_extract_alphamissense.py
@@ -82,23 +78,103 @@ ml_prediction_pipeline/
 │   ├── step03_plot_alphamissense.ipynb
 │   └── step07_plot_esm_results.ipynb
 │
-├── data/
+├── data/                 # NOT tracked in git
 │   ├── mapping/
 │   ├── alphamissense/
 │   └── esm_input/
 │
-└── results/
-    ├── alphamissense/
-    └── esm/
+└── results/              # reproducible outputs
 ```
 
 ---
 
-# Step-by-step usage
+# Data Availability
+
+This pipeline depends exclusively on **public datasets**.  
+Due to licensing and file-size constraints, these datasets are **not redistributed**.
 
 ---
 
-## Step01 — Map PDB residues to UniProt
+## SCOP Structural Classification
+
+Used for mapping PDB residues to UniProt coordinates.
+
+- Source:  
+https://www.ebi.ac.uk/pdbe/scop/files/scop-cla-latest.txt
+
+Recommended location:
+
+```
+data/scop/
+```
+
+⚠️ Always record the release version for reproducibility.
+
+---
+
+## AlphaMissense Variant Predictions
+
+- Publication:  
+**Cheng et al., Nature (2023)**
+
+- Download:  
+https://alphamissense.hegelab.org/
+
+Required file:
+
+```
+AlphaMissense_aa_substitutions.tsv
+```
+
+⚠️ File size is large (tens of GB).  
+High-speed storage recommended.
+
+---
+
+## ESM-1v Protein Language Model
+
+- Official repository:  
+https://github.com/facebookresearch/esm
+
+Models used:
+
+```
+esm1v_t33_650M_UR90S_1–5
+```
+
+Install:
+
+```bash
+pip install fair-esm
+```
+
+Models download automatically.
+
+⚠️ GPU strongly recommended.
+
+---
+
+# Reproducibility Statement
+
+All results can be reproduced using:
+
+1. Public SCOP classification  
+2. AlphaMissense dataset  
+3. Official ESM models  
+
+No proprietary datasets are required.
+
+Intermediate files are intentionally excluded from version control.
+
+---
+
+# Step-by-Step Usage
+
+---
+
+## Step01 — Map Salt-Bridge Residues to UniProt
+
+Uses curated SCOP alignment rather than heuristic sequence matching.
 
 ```bash
 python scripts/step01_map_pdb_to_uniprot.py \
@@ -107,28 +183,22 @@ python scripts/step01_map_pdb_to_uniprot.py \
   --output data/mapping/cla_mapping.csv
 ```
 
-Output:
-
-```
-mapping_*.csv
-```
-
 ---
 
-## Step02 — Extract AlphaMissense ALA mutation scores
+## Step02 — Extract AlphaMissense Scores
+
+Only **alanine substitutions (X→A)** are analyzed for consistency across residue types.
 
 ```bash
 python scripts/step02_extract_alphamissense.py \
   --mapping data/mapping/cla_mapping.csv \
   --am-tsv data/alphamissense/AlphaMissense_aa_substitutions.tsv \
-  --output results/alphamissense/cla_AM_scores.csv
+  --output results/alphamissense/cla_scores.csv
 ```
-
-Only ALA substitutions (X→A) are retained.
 
 ---
 
-## Step03 — Plot AlphaMissense scores
+## Step03 — Visual Inspection
 
 Notebook:
 
@@ -136,19 +206,23 @@ Notebook:
 notebooks/step03_plot_alphamissense.ipynb
 ```
 
+Used to confirm mutational constraint patterns.
+
 ---
 
-## Step04 — Prepare ESM mutation input
+## Step04 — Prepare ESM Mutation Table
 
 ```bash
 python scripts/step04_prepare_esm_input.py \
   --mapping data/mapping/cla_mapping.csv \
-  --output data/esm_input/cla_ESM_input.csv
+  --output data/esm_input/cla_esm.csv
 ```
 
 ---
 
-## Step05 — Run ESM-1v ensemble prediction
+## Step05 — Run ESM-1v Ensemble
+
+Five independent models are averaged to reduce stochastic variance.
 
 ```bash
 python scripts/step05_run_esm_ensemble.py \
@@ -157,39 +231,52 @@ python scripts/step05_run_esm_ensemble.py \
                    esm1v_t33_650M_UR90S_3 \
                    esm1v_t33_650M_UR90S_4 \
                    esm1v_t33_650M_UR90S_5 \
-  --dms-input data/esm_input/cla_ESM_input.csv \
-  --dms-output results/esm/cla_esm_scores.csv
+  --dms-input data/esm_input/cla_esm.csv \
+  --dms-output results/esm/cla_scores.csv
 ```
-
-Five models are averaged for robustness.
 
 ---
 
-## Step06 — Merge predictions
+## Step06 — Merge Predictions
 
 ```bash
 python scripts/step06_merge_results.py \
   --mapping data/mapping/cla_mapping.csv \
-  --esm-results results/esm/cla_esm_scores.csv \
-  --output results/esm/cla_final.csv
+  --esm-results results/esm/cla_scores.csv \
+  --output results/final/cla_mutational_constraint.csv
 ```
 
 ---
 
-# Key Design Choices
+# Key Methodological Choices
 
-- Only **ALA substitutions** are analyzed for consistency.
-- Ensemble ESM prediction improves stability.
-- Mapping relies on curated SCOP alignment.
+- Alanine scanning ensures uniform physicochemical perturbation.
+- Ensemble inference improves robustness.
+- SCOP-based mapping avoids alignment artifacts.
+
+---
+
+# Compute Requirements
+
+Recommended:
+
+- GPU with ≥16GB VRAM (for ESM)
+- ≥64GB RAM if processing large AlphaMissense tables
+- SSD / high-speed network storage
 
 ---
 
 # Citation
 
-Please cite:
+If you use this pipeline, please cite:
 
-- AlphaMissense  
+- AlphaMissense (Nature 2023)  
 - ESM-1v  
 - SCOP  
-- Associated manuscript
+- The associated manuscript  
 
+---
+
+# License
+
+Recommended: MIT
