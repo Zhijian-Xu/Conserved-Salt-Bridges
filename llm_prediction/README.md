@@ -1,14 +1,15 @@
 # ML Prediction Pipeline (AlphaMissense + ESM-1v)
 
-This module evaluates mutational sensitivity of salt-bridge residues using:
-- **AlphaMissense** (pathogenicity / variant effect scores)
-- **ESM-1v** (zero-shot mutational effect; 5-model ensemble)
+This module evaluates mutational sensitivity of spatially conserved salt-bridge residues using:
 
-We map salt-bridge residues from **PDB → UniProt**, retrieve mutation scores, and validate conservation signals.
+- **AlphaMissense** — genome-scale pathogenicity prediction  
+- **ESM-1v** — protein language model for zero-shot mutational effect estimation  
+
+Salt-bridge residues are mapped from **PDB → UniProt**, mutation scores are retrieved, and evolutionary constraints are analyzed.
 
 ---
 
-## Pipeline overview (6 steps)
+## Pipeline Overview (6 Steps)
 
 ```mermaid
 flowchart LR
@@ -16,162 +17,250 @@ flowchart LR
   --> B["Step01 Map PDB → UniProt (SCOP alignment)"]
   --> C["Step02 Extract AlphaMissense ALA scores"]
   --> D["Step03 Plot AlphaMissense results (QC)"]
-  --> E["Step04 Generate ESM input table from mapping"]
+  --> E["Step04 Generate ESM input table"]
   --> F["Step05 Run ESM-1v ensemble prediction"]
   --> G["Step06 Plot ESM results (mean_score computed here)"]
 ```
 
 ---
 
-## Data availability and sources
+# Data Availability
 
-This project relies on public datasets/models. Due to size and licensing, they are **not redistributed** in this repository.
+This project relies exclusively on **public datasets and models**.  
+Due to file-size limits and licensing constraints, large datasets are **NOT redistributed** in this repository.
 
-### SCOP mapping file
-Used for PDB–UniProt residue alignment.
+The repository intentionally contains only:
 
-- Source: https://www.ebi.ac.uk/pdbe/scop/files/scop-cla-latest.txt  
-- Place at: `data/scop/scop-cla-latest.txt`
+- code  
+- lightweight metadata  
+- notebooks  
 
-### AlphaMissense dataset
-Used to retrieve variant scores (we extract **X→A** entries at mapped positions).
-
-- Portal: https://alphamissense.hegelab.org/  
-- Required file: `AlphaMissense_aa_substitutions.tsv`  
-- Place at: `data/alphamissense/AlphaMissense_aa_substitutions.tsv`
-
-### ESM-1v models
-Used for zero-shot mutational effect prediction.
-
-- Official repo: https://github.com/facebookresearch/esm  
-- Models: `esm1v_t33_650M_UR90S_1–5`  
-- Install: `pip install fair-esm` (models download automatically)
+to ensure fast cloning and long-term maintainability.
 
 ---
 
-## Repository structure
+## SCOP Structural Classification
 
-```text
-ml_prediction_pipeline/
-├── scripts/
-│   ├── step01_map_pdb_to_uniprot.py
-│   ├── step02_extract_alphamissense.py
-│   ├── step04_prepare_esm_input.py
-│   └── step05_run_esm_ensemble.py                  # ESM inference (5-model ensemble)
-│
-├── notebooks/
-│   ├── step03_plot_alphamissense.ipynb  # AM_pic.ipynb (QC figures)
-│   └── step06_plot_esm_results.ipynb    # ESM plots + mean_score
-│
-└── results/
-    ├── Mapping/
-    ├── alphamissense/
-    └── esm/
+Used for mapping PDB residues to UniProt coordinates.
+
+Download:
+
+https://www.ebi.ac.uk/pdbe/scop/files/scop-cla-latest.txt
+
+Place under:
+
+```
+data/scop/scop-cla-latest.txt
 ```
 
 ---
 
-## Installation
+## AlphaMissense Variant Dataset
+
+Publication:
+
+> Cheng et al., Nature (2023) — AlphaMissense
+
+Download:
+
+https://alphamissense.hegelab.org/
+
+Required file:
+
+```
+AlphaMissense_aa_substitutions.tsv
+```
+
+Place under:
+
+```
+data/alphamissense/
+```
+
+⚠️ File size is large (tens of GB).  
+High-speed storage is recommended.
+
+---
+
+## ESM‑1v Protein Language Model
+
+Official repository:
+
+https://github.com/facebookresearch/esm
+
+Install:
+
+```bash
+pip install fair-esm
+```
+
+Models used:
+
+```
+esm1v_t33_650M_UR90S_1–5
+```
+
+Models download automatically on first use.
+
+⚠️ GPU is strongly recommended.
+
+---
+
+# Large Files Policy
+
+Some intermediate and result files (e.g., ESM prediction tables) exceed GitHub’s file-size limits and are therefore **not tracked in this repository**.
+
+Examples include:
+
+- ESM prediction CSV tables  
+- Extracted AlphaMissense score tables  
+- Merged datasets  
+
+All results can be fully reproduced by running the pipeline.
+
+Large tables can be provided upon reasonable request or hosted on external data platforms such as Zenodo or Figshare.
+
+---
+
+# Repository Structure
+
+```
+ml_prediction_pipeline/
+│
+├── scripts/
+│   ├── step01_map_pdb_to_uniprot.py
+│   ├── step02_extract_alphamissense.py
+│   ├── step04_prepare_esm_input.py
+│   └── predict-pzy3.py
+│
+├── notebooks/
+│   ├── step03_plot_alphamissense.ipynb
+│   └── step06_plot_esm_results.ipynb
+│
+├── data/        # NOT tracked in git
+└── results/     # NOT tracked in git
+```
+
+---
+
+# Installation
 
 Recommended environment:
 
 ```bash
 conda create -n saltbridge-ml python=3.10 -y
 conda activate saltbridge-ml
+
 pip install torch fair-esm pandas numpy matplotlib tqdm
 ```
 
-GPU is strongly recommended for ESM.
+GPU recommended for ESM inference.
 
 ---
 
-## Step-by-step usage
+# Step-by-Step Usage
 
-### Step01 — Map PDB residues to UniProt (SCOP alignment)
-Input: salt-bridge list in PDB coordinates + SCOP mapping file  
-Output: `mapping_*.csv`
+## Step01 — Map PDB residues to UniProt
 
 ```bash
-python scripts/step01_map_pdb_to_uniprot.py \
-  --saltbridge-dir data/saltbridges_txt \
-  --scop-file data/scop/scop-cla-latest.txt \
-  --output data/mapping/mapping_cla.csv
+python scripts/step01_map_pdb_to_uniprot.py   --saltbridge-dir data/saltbridges_txt   --scop-file data/scop/scop-cla-latest.txt   --output data/mapping/mapping_cla.csv
 ```
 
 ---
 
-### Step02 — Extract AlphaMissense scores (X→A)
-Input: `mapping_*.csv` + `AlphaMissense_aa_substitutions.tsv`  
-Output: `*_AM_scores.csv`
+## Step02 — Extract AlphaMissense scores
 
 ```bash
-python scripts/step02_extract_alphamissense.py \
-  --mapping data/mapping/mapping_cla.csv \
-  --am-tsv data/alphamissense/AlphaMissense_aa_substitutions.tsv \
-  --output results/alphamissense/cla_AM_scores.csv
+python scripts/step02_extract_alphamissense.py   --mapping data/mapping/mapping_cla.csv   --am-tsv data/alphamissense/AlphaMissense_aa_substitutions.tsv   --output results/alphamissense/cla_AM_scores.csv
 ```
 
 ---
 
-### Step03 — Plot AlphaMissense results (QC)
+## Step03 — Plot AlphaMissense Results
+
 Notebook:
 
-- `notebooks/step03_plot_alphamissense.ipynb`
+```
+notebooks/step03_plot_alphamissense.ipynb
+```
+
+Used for QC and statistical visualization.
 
 ---
 
-### Step04 — Generate ESM input CSV
-Input: `mapping_*.csv` (+ UniProt FASTA if required by your workflow)  
-Output: `data/esm_input/*.csv`
+## Step04 — Generate ESM Input
 
 ```bash
-python scripts/step04_prepare_esm_input.py \
-  --mapping data/mapping/mapping_cla.csv \
-  --fasta data/uniprot/uniprot.fasta \
-  --output data/esm_input/cla_ESM_input.csv
+python scripts/step04_prepare_esm_input.py   --mapping data/mapping/mapping_cla.csv   --fasta data/uniprot/uniprot.fasta   --output data/esm_input/cla_ESM_input.csv
 ```
 
 ---
 
-### Step05 — Run ESM-1v ensemble (5 models)
-Input: ESM input CSV  
-Output: ESM result CSV with 5 model columns
+## Step05 — Run ESM‑1v Ensemble
 
 ```bash
-python scripts/predict-pzy3.py \
-  --model-location esm1v_t33_650M_UR90S_1 esm1v_t33_650M_UR90S_2 esm1v_t33_650M_UR90S_3 esm1v_t33_650M_UR90S_4 esm1v_t33_650M_UR90S_5 \
-  --dms-input data/esm_input/cla_ESM_input.csv \
-  --dms-output results/esm/resultESM-cla.csv
+python scripts/predict-pzy3.py   --model-location esm1v_t33_650M_UR90S_1 esm1v_t33_650M_UR90S_2                    esm1v_t33_650M_UR90S_3 esm1v_t33_650M_UR90S_4                    esm1v_t33_650M_UR90S_5   --dms-input data/esm_input/cla_ESM_input.csv   --dms-output results/esm/resultESM-cla.csv
 ```
 
 ---
 
-### Step06 — Plot ESM results (mean_score computed here)
+## Step06 — Plot ESM Results (Mean Score Computed Here)
+
 Notebook:
 
-- `notebooks/step06_plot_esm_results.ipynb`
+```
+notebooks/step06_plot_esm_results.ipynb
+```
 
-This notebook computes:
+This notebook automatically computes:
 
-- `mean_score = mean(esm1v_t33_650M_UR90S_1..5)` (if not already present)
+```
+mean_score = mean(esm1v_t33_650M_UR90S_1..5)
+```
 
-and saves figures into:
+and generates figures under:
 
-- `results/figures/`
+```
+results/figures/
+```
 
 ---
 
-## Notes
+# Reproducibility Statement
 
-- We use alanine substitutions (X→A) for consistent perturbation across residue types.
-- `data/` and `results/` can be large; consider ignoring them in `.gitignore`.
+All analyses in this repository can be reproduced using:
+
+1. Public SCOP classification  
+2. AlphaMissense dataset  
+3. Official ESM models  
+
+No proprietary datasets are required.
 
 ---
 
-## Citation
+# Compute Requirements
 
-Please cite:
-- AlphaMissense
-- ESM-1v
-- SCOP
-- The associated manuscript
+Recommended:
+
+- GPU with ≥16GB VRAM for ESM  
+- ≥32–64GB RAM for large AlphaMissense tables  
+- SSD / high-speed network storage  
+
+---
+
+# Citation
+
+If you use this pipeline, please cite:
+
+- AlphaMissense (Nature 2023)  
+- ESM-1v  
+- SCOP  
+- The associated manuscript  
+
+---
+
+# License
+
+Recommended: MIT License
+
+This permissive license maximizes reuse while maintaining attribution.
